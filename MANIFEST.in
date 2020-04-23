@@ -1,0 +1,2 @@
+include openapi_toolset/static *.html
+include openapi_toolset/static/simple-openapi-server *.*
