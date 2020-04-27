@@ -7,6 +7,9 @@ setuptools.setup(
     author_email='abraham.liu@hotmail.com',
     description='a collection toolset for openapi',
     install_requires=[],
+    extra_require={
+        'django': ['pyyaml', 'jsonschema', 'django']
+    },
     include_package_data=True,
     packages=setuptools.find_packages(),
     scripts=[

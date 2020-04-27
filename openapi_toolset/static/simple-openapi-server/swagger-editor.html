@@ -49,7 +49,7 @@
   window.onload = function() {
     // Build a system
     const editor = SwaggerEditorBundle({
-      url: "/openapi.yaml",
+      url: "/openapi.yaml?" + (new Date()).valueOf(),
       dom_id: '#swagger-editor',
       layout: 'StandaloneLayout',
       presets: [
