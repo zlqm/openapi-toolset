@@ -31,7 +31,8 @@ You can simpley preview a openapi doc file with this tool.
 django_plugin
 ---------------
 
-write api doc in CBV(class-based-view) docstring and genereate openapi doc for project.
+1. write api doc in CBV(class-based-view) docstring and genereate openapi doc for project;
+2. validate response content by api doc;
 
 .. code:: bash
 

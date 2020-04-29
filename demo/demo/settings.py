@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'openapi_toolset.django_plugin.middlewares.APIDocCheckMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -122,6 +123,7 @@ STATIC_URL = '/static/'
 
 
 # OPENAPI settings
+OPENAPI_CHECK_DOC = os.path.join(BASE_DIR, 'docs/api.yaml')
 _doc_dir = os.path.join(BASE_DIR, 'openapi_docs')
 OPENAPI_SERVERS_DOC = os.path.join(_doc_dir, 'servers.yaml')
 OPENAPI_COMPONENTS_DOC = os.path.join(_doc_dir, 'components.yaml')

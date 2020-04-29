@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import JsonResponse
 from django.views import View
 
 
@@ -38,7 +38,10 @@ class PetListView(View):
                 schema:
                   $ref: "#/components/schemas/Error"
         '''
-        return HttpResponse('get pet list')
+        content = {
+            'asd': '123'
+        }
+        return JsonResponse(content)
 
     def post(self, request):
         '''
@@ -95,4 +98,9 @@ class PetView(View):
                 schema:
                   $ref: "#/components/schemas/Error"
         '''
-        return HttpResponse('get pet detail')
+        content = {
+            'id': 1,
+            'name': 'peter',
+            'tag': 'dog'
+        }
+        return JsonResponse(content)
