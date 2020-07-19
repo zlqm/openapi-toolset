@@ -43,19 +43,23 @@ class APIDocCheckMiddleware:
 
         path = request.path
         method = request.method.lower()
-        api_spec = API_SPEC.get_operation_spec(path, method)
-        if not api_spec:
-            return self.raise_missing_doc(response)
+
+        schema = json_content = schema = None
         try:
             content = response.content.decode(response.charset)
             json_content = json.loads(content)
+            api_spec = API_SPEC.get_operation_spec(path, method)
+            if not api_spec:
+                return self.missing_doc_handler(request, response)
             schema = api_spec.get_response_body_schema()
             if not schema:
                 return self.missing_doc_handler(request, response)
             jsonschema.validate(json_content, schema)
             self.log(request, 'info', 'resp match doc')
             return response
-        except jsonschema.exceptions.ValidationError as err:
+        except Exception as err:
+            if not schema:
+                return self.missing_doc_handler(request, response)
             return self.mismatch_handler(request, response, schema, json_content, err)
 
     def missing_doc_handler(self, request, response):
