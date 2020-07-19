@@ -31,8 +31,8 @@ class Unset:
 def strict_schema(schema, allow_additional_properties=False):
     if isinstance(schema, dict):
         if schema.get('nullable'):
-            _type = schema['type']
-            if not isinstance(_type, list):
+            _type = schema.get('type', [])
+            if _type and not isinstance(_type, list):
                 _type = [_type]
             _type.append('null')
             schema.pop('nullable')
@@ -48,7 +48,7 @@ def strict_schema(schema, allow_additional_properties=False):
             for property_key, property_schema in properties_dct.items():
                 property_schema = strict_schema(property_schema)
                 schema['properties'][property_key] = property_schema
-                if 'null' not in property_schema['type']:
+                if 'null' not in property_schema.get('type', []):
                     default_required.append(property_key)
             schema['required'] = required or default_required
     elif isinstance(schema, list):
