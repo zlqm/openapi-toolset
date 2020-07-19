@@ -37,15 +37,16 @@ class APIDocCheckMiddleware:
         content_type = response.get('Content-Type')
         # in case of application/json;charset=UTF-8
         content_type = content_type.split(';', 1)[0]
+        # only check response in json format
+        if not content_type == 'application/json':
+            return response
+
         path = request.path
         method = request.method.lower()
         api_spec = API_SPEC.get_operation_spec(path, method)
         if not api_spec:
             return self.raise_missing_doc(response)
         try:
-            # only check response in json format
-            if not content_type == 'application/json':
-                return response
             content = response.content.decode(response.charset)
             json_content = json.loads(content)
             schema = api_spec.get_response_body_schema()
