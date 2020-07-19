@@ -89,9 +89,11 @@ class OperationSpec:
             schema = responses_schema[status_code]
         else:
             schema = responses_schema[str(status_code)]
-        if content_type not in schema['content']:
-            raise MissingDoc
-        schema = schema['content'][content_type]['schema']
+        if content_type not in schema.get('content', {}):
+            raise MissingDoc('content-type {} missing'.format(content_type))
+        schema = schema['content'][content_type].get('schema')
+        if not schema:
+            raise MissingDoc('"schema" missing for {}'.format(content_type))
         schema = self.resource_spec.openapi_spec.resolve_ref(schema)
         schema = strict_schema(schema)
         return schema
