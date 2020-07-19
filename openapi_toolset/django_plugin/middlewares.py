@@ -69,9 +69,6 @@ class APIDocCheckMiddleware:
         raise APIMissDoc('cannot get api doc')
 
     def mismatch_handler(self, request, response, schema, content, exc):
-        self.log(request, 'error', 'resp does not match doc')
-        if not OPENAPI_CHECK_FAIL_FAST:
-            return response
         exc_dct = {
             'schema_content': json.dumps(schema, indent=2),
             'resp_content': json.dumps(content, indent=2) if content else None,
@@ -80,6 +77,9 @@ class APIDocCheckMiddleware:
         exc_msg = 'API Schema:\n{schema_content}\n' \
             'Response Content:\n{resp_content}\n' \
             'Mismatch:\n{reason}'.format(**exc_dct)
+        if not OPENAPI_CHECK_FAIL_FAST:
+            self.log(request, 'exception', 'response does not match doc'.format(exc_msg))
+            return response
         raise APIMismatchDoc(exc_msg)
 
     def log(self, request, level, msg, *args, **kwargs):
