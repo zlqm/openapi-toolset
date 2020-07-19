@@ -46,14 +46,14 @@ class APIDocCheckMiddleware:
 
         schema = json_content = schema = None
         try:
-            content = response.content.decode(response.charset)
-            json_content = json.loads(content)
             api_spec = API_SPEC.get_operation_spec(path, method)
             if not api_spec:
                 return self.missing_doc_handler(request, response)
             schema = api_spec.get_response_body_schema()
             if not schema:
                 return self.missing_doc_handler(request, response)
+            content = response.content.decode(response.charset)
+            json_content = json.loads(content)
             jsonschema.validate(json_content, schema)
             self.log(request, 'info', 'resp match doc')
             return response
@@ -74,7 +74,7 @@ class APIDocCheckMiddleware:
             return response
         exc_dct = {
             'schema_content': json.dumps(schema, indent=2),
-            'resp_content': json.dumps(content, indent=2),
+            'resp_content': json.dumps(content, indent=2) if content else None,
             'reason': str(exc)
         }
         exc_msg = 'API Schema:\n{schema_content}\n' \
