@@ -25,7 +25,7 @@ SECRET_KEY = '1d5!t541!!8*v2&i_2m!rw2bpmp2j^3vhlq14y9^%c_1dy%gnm'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -127,3 +127,4 @@ OPENAPI_CHECK_DOC = os.path.join(BASE_DIR, 'docs/api.yaml')
 _doc_dir = os.path.join(BASE_DIR, 'openapi_docs')
 OPENAPI_SERVERS_DOC = os.path.join(_doc_dir, 'servers.yaml')
 OPENAPI_COMPONENTS_DOC = os.path.join(_doc_dir, 'components.yaml')
+OPENAPI_CHECK_FAIL_FAST = True

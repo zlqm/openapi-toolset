@@ -101,6 +101,9 @@ class PetView(View):
         content = {
             'id': 1,
             'name': 'peter',
-            'tag': 'dog'
+            'tag': 'dog',
+            'photos': [
+                {'timestamp': 1, 'url': 'https://ss'}
+            ]
         }
         return JsonResponse(content)

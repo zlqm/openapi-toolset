@@ -28,45 +28,29 @@ class Unset:
 	pass
 
 
-def deep_get(dct, key, default=Unset):
-    paths = re.split(r'\.', key)
-    try:
-        for path in paths:
-            dct = dct[path]
-        return dct
-    except KeyError as err:
-        if default is Unset:
-            raise err
-        return default
-
-
-def deep_set(dct, key, value, force_set=False):
-    paths = re.split(r'\.', key)
-    for path in paths[:-1]:
-        try:
-            dct = dct[path]
-        except KeyError:
-            dct[path] = {}
-            dct = dct[path]
-    dct[paths[-1]] = value
-
-
 def strict_schema(schema, allow_additional_properties=False):
     if isinstance(schema, dict):
+        if schema.get('nullable'):
+            _type = schema['type']
+            if not isinstance(_type, list):
+                _type = [_type]
+            _type.append('null')
+            schema.pop('nullable')
+            schema['type'] = _type
         if schema.get('type') == 'object':
             schema['allow_additional_properties'] = \
                 schema.get(
                     'allow_additional_properties',
                     allow_additional_properties)
-            schema['required'] = schema.get(
-                'required', list(schema['properties'].keys()))
-            if schema.get('nullable'):
-                _type = schema['type']
-                if isinstance(_type, list):
-                    _type = [_type]
-                _type.append('null')
-                schema.pop('nullable')
-                schema['type'] = _type
+            default_required = []
+            required = schema.get('required')
+            properties_dct = schema.get('properties', {})
+            for property_key, property_schema in properties_dct.items():
+                property_schema = strict_schema(property_schema)
+                schema['properties'][property_key] = property_schema
+                if 'null' not in property_schema['type']:
+                    default_required.append(property_key)
+            schema['required'] = required or default_required
     elif isinstance(schema, list):
         schema, origin_schema = [], schema
         for item in origin_schema:
@@ -210,14 +194,13 @@ class OpenAPISpec:
 
     def resolve_ref(self, schema):
         schema = deepcopy(schema)
-        refs = set()
 
         def _resolve_ref(schema):
-            """找到所有的ref"""
+            """find all ref"""
             if isinstance(schema, dict):
-                if '$ref' in schema and schema['$ref'] not in refs:
-                    refs.add(schema['$ref'])
+                if '$ref' in schema:
                     schema = self.ref_resolver.resolve(schema['$ref'])[1]
+                    schema = strict_schema(schema)
                     schema = _resolve_ref(schema)
                 else:
                     schema = {
@@ -228,10 +211,4 @@ class OpenAPISpec:
                 schema = [_resolve_ref(item) for item in schema]
             return schema
 
-        _resolve_ref(schema)
-        # 将ref添加到schema中
-        for ref in refs:
-            ref_schema = self.ref_resolver.resolve(ref)[1]
-            ref = ref.lstrip('#/').replace('/', '.')
-            deep_set(schema, ref, ref_schema)
-        return schema
+        return _resolve_ref(schema)

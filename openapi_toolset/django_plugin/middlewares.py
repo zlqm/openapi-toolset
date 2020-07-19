@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.conf import settings
@@ -5,8 +6,10 @@ from django.http import HttpResponse
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.functional import SimpleLazyObject
 
-from openapi_toolset.spec import (
-    OpenAPISpec, MissingDoc, UnmatchDoc)
+import jsonschema
+
+from openapi_toolset.spec import OpenAPISpec
+from .exceptions import APIMismatchDoc, APIMissDoc
 
 
 OPENAPI_CHECK_FAIL_FAST = getattr(
@@ -40,31 +43,39 @@ class APIDocCheckMiddleware:
         if not api_spec:
             return self.raise_missing_doc(response)
         try:
-            api_spec.validate_response(
-                response.content,
-                content_type=content_type,
-                charset=response.charset,
-                status_code=response.status_code
-            )
+            # only check response in json format
+            if not content_type == 'application/json':
+                return response
+            content = response.content.decode(response.charset)
+            json_content = json.loads(content)
+            schema = api_spec.get_response_body_schema()
+            if not schema:
+                return self.missing_doc_handler(request, response)
+            jsonschema.validate(json_content, schema)
             self.log(request, 'info', 'resp match doc')
             return response
-        except MissingDoc as err:
-            self.log(request, 'warning', 'doc missing')
-            return self.raise_missing_doc(response, err)
-        except UnmatchDoc as err:
-            self.log(request, 'error', 'resp does not match doc')
-            return self.raise_mismatch(response, err)
+        except jsonschema.exceptions.ValidationError as err:
+            return self.mismatch_handler(request, response, schema, json_content, err)
 
-    def raise_missing_doc(self, response, exc=None):
-        if OPENAPI_CHECK_FAIL_ON_MISSING:
-            return HttpResponse('missing api doc', status_code=503)
-        return response
+    def missing_doc_handler(self, request, response):
+        self.log(request, 'warning', 'doc missing')
+        if not OPENAPI_CHECK_FAIL_ON_MISSING:
+            return response
+        raise APIMissDoc('cannot get api doc')
 
-
-    def raise_mismatch(self, response, exc=None):
-        if OPENAPI_CHECK_FAIL_FAST:
-            return HttpResponse('resp doesnot match doc', status_code=503)
-        return response
+    def mismatch_handler(self, request, response, schema, content, exc):
+        self.log(request, 'error', 'resp does not match doc')
+        if not OPENAPI_CHECK_FAIL_FAST:
+            return response
+        exc_dct = {
+            'schema_content': json.dumps(schema, indent=2),
+            'resp_content': json.dumps(content, indent=2),
+            'reason': str(exc)
+        }
+        exc_msg = 'API Schema:\n{schema_content}\n' \
+            'Response Content:\n{resp_content}\n' \
+            'Mismatch:\n{reason}'.format(**exc_dct)
+        raise APIMismatchDoc(exc_msg)
 
     def log(self, request, level, msg, *args, **kwargs):
         log_func = getattr(logger, level.lower())

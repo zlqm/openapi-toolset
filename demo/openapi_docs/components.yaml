@@ -4,6 +4,7 @@ schemas:
     required:
       - id
       - name
+      - photos
     properties:
       id:
         type: integer
@@ -12,10 +13,24 @@ schemas:
         type: string
       tag:
         type: string
+      photos:
+        type: array
+        items:
+          $ref: '#/components/schemas/Photo'
   Pets:
     type: array
     items:
       $ref: "#/components/schemas/Pet"
+  Photo:
+    type: object
+    properties:
+      timestamp:
+        type: integer
+      url:
+        type: string
+      description:
+        type: string
+        nullable: true
   Error:
     type: object
     required:
