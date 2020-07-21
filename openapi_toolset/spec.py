@@ -78,7 +78,8 @@ class OperationSpec:
             parameter = deepcopy(parameter)
             location = parameter.pop('in')
             name = parameter.pop('name')
-            dct[location][name] = parameter
+            schema = parameter.pop('schema')
+            dct[location][name] = schema
         return dct
 
     def get_response_body_schema(self,
@@ -142,11 +143,19 @@ class ResourceSpec:
 
         def replace_parameter_name_to_regex(match):
             name = match.group('parameter')
-            _type = parameters_dict.get(name)
-            if _type == 'integer':
-                regex = r'(?P<{}>\d+)'.format(name)
+            schema = parameters_dict.get(name)
+            _type = schema.get('type')
+
+            enum = schema.get('enum')
+
+            if enum:
+                values = '|'.join(re.escape(item) for item in enum)
+            elif _type == 'integer':
+                values = r'\d+'
             else:
-                regex = r'(?P<{}>[^/]+)'.format(name)
+                values = '[^/]+'
+
+            regex = r'(?P<{}>{})'.format(name, values)
             return regex
 
         pattern_str = re.sub(
