@@ -78,7 +78,8 @@ class OperationSpec:
             parameter = deepcopy(parameter)
             location = parameter.pop('in')
             name = parameter.pop('name')
-            dct[location][name] = parameter
+            schema = parameter.pop('schema')
+            dct[location][name] = schema
         return dct
 
     def get_response_body_schema(self,
@@ -142,7 +143,8 @@ class ResourceSpec:
 
         def replace_parameter_name_to_regex(match):
             name = match.group('parameter')
-            _type = parameters_dict.get(name)
+            schema = parameters_dict.get(name)
+            _type = schema.get('type')
             if _type == 'integer':
                 regex = r'(?P<{}>\d+)'.format(name)
             else:
