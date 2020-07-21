@@ -145,10 +145,17 @@ class ResourceSpec:
             name = match.group('parameter')
             schema = parameters_dict.get(name)
             _type = schema.get('type')
-            if _type == 'integer':
-                regex = r'(?P<{}>\d+)'.format(name)
+
+            enum = schema.get('enum')
+
+            if enum:
+                values = '|'.join(re.escape(item) for item in enum)
+            elif _type == 'integer':
+                values = r'\d+'
             else:
-                regex = r'(?P<{}>[^/]+)'.format(name)
+                values = '[^/]+'
+
+            regex = r'(?P<{}>{})'.format(name, values)
             return regex
 
         pattern_str = re.sub(
