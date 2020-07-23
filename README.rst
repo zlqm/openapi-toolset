@@ -41,3 +41,14 @@ django_plugin
     # preview genereated openapi doc
     $ python demo/manage.py serve_openapi_doc -f test.yaml
     erving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/) ...
+
+
+
+********
+Tests
+********
+
+
+.. code:: bash
+
+    pytest tests/

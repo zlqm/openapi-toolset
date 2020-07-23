@@ -34,7 +34,7 @@ def strict_schema(schema, allow_additional_properties=False):
             _type = schema.get('type', [])
             if _type and not isinstance(_type, list):
                 _type = [_type]
-            _type.append('null')
+            _type.append(None)
             schema.pop('nullable')
             schema['type'] = _type
         if schema.get('type') == 'object':
@@ -48,9 +48,15 @@ def strict_schema(schema, allow_additional_properties=False):
             for property_key, property_schema in properties_dct.items():
                 property_schema = strict_schema(property_schema)
                 schema['properties'][property_key] = property_schema
-                if 'null' not in property_schema.get('type', []):
+                if not isinstance(property_schema['type'], list) or \
+                        None not in property_schema['type']:
                     default_required.append(property_key)
             schema['required'] = required or default_required
+        elif schema.get('type') == 'array':
+            _item_schema = schema.get('items', {})
+            if isinstance(_item_schema, dict) and \
+                    _item_schema.get('type') == 'object':
+                schema['items'] = strict_schema(_item_schema)
     elif isinstance(schema, list):
         schema, origin_schema = [], schema
         for item in origin_schema:
