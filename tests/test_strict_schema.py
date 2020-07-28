@@ -1,5 +1,25 @@
 import yaml
-from openapi_toolset.jsonschema import strict_schema
+
+from openapi_toolset.spec import OpenAPISpec
+
+
+def _get_processed_schema(schema):
+    """Wraps a schema in a doc."""
+    if isinstance(schema, str):
+        schema = yaml.load(schema)
+
+    fake_doc = {
+        'version': '3.0.4',
+        'paths': [],
+        'components': {
+            'schemas': {
+                'foo': schema,
+            },
+        },
+    }
+
+    doc = OpenAPISpec(fake_doc).spec_dict
+    return doc['components']['schemas']['foo']
 
 
 def is_equal(a, b):
@@ -64,9 +84,9 @@ def test_nullable():
     type: object
     properties:
       name:
-        oneOf:
-          - type: string
-          - type: 'null'
+        type:
+          - string
+          - 'null'
       tags:
         type: array
         items:
@@ -75,14 +95,14 @@ def test_nullable():
             name:
               type: string
             tagged_by:
-              oneOf:
-                - type: string
-                - type: 'null'
+              type:
+                - string
+                - 'null'
     """
-    schema = yaml.safe_load(schema_yaml)
-    expected_schema = yaml.safe_load(expected_schema_yaml)
-    schema = strict_schema(schema)
-    assert is_subset(expected_schema, schema) is True
+    schema = _get_processed_schema(schema_yaml)
+
+    expected_schema = yaml.load(expected_schema_yaml)
+    assert schema == expected_schema
 
 
 def test_allow_additional_properties():
@@ -103,41 +123,11 @@ def test_allow_additional_properties():
               type: string
               nullable: true
     """
-    schema = yaml.safe_load(schema_yaml)
-    schema = strict_schema(schema)
-    assert schema.get('additionalProperties') is False
-    assert schema['properties']['tags']['items'].get(
-        'additionalProperties') is False
-
-    schema_yaml = """
-    type: object
-    additionalProperties:
-      type: string
-    properties:
-      name:
-        type: string
-        nullable: true
-      tags:
-        type: array
-        items:
-          type: object
-          additionalProperties:
-            type: string
-          properties:
-            name:
-              type: string
-            tagged_by:
-              type: string
-              nullable: true
-    """
-    schema = yaml.safe_load(schema_yaml)
-    schema = strict_schema(schema)
-    assert schema.get('additionalProperties') == {'type': 'string'}
-    assert schema['properties']['tags']['items'].get(
-        'additionalProperties') == {'type': 'string'}
+    schema = _get_processed_schema(schema_yaml)
+    assert schema['properties']['tags']['items']['properties']['tagged_by']
 
 
-def test_required():
+def test_required_none():
     schema_yaml = """
     type: object
     properties:
@@ -155,37 +145,5 @@ def test_required():
               type: string
               nullable: true
     """
-    schema = yaml.safe_load(schema_yaml)
-    schema = strict_schema(schema)
-    assert set(schema['required']) == set(['name', 'tags'])
-    assert set(schema['properties']['tags']['items']['required']) \
-        == set(['name', 'tagged_by'])
-
-    schema_yaml = """
-    type: object
-    required:
-      - name
-      - tags
-    properties:
-      name:
-        type: string
-        nullable: true
-      tags:
-        type: array
-        items:
-          type: object
-          required:
-            - name
-            - tagged_by
-          properties:
-            name:
-              type: string
-            tagged_by:
-              type: string
-              nullable: true
-    """
-    schema = yaml.safe_load(schema_yaml)
-    schema = strict_schema(schema)
-    assert set(schema['required']) == set(['name', 'tags'])
-    assert set(schema['properties']['tags']['items']['required']) \
-        == set(['name', 'tagged_by'])
+    schema = _get_processed_schema(schema_yaml)
+    assert not schema.get('required')
