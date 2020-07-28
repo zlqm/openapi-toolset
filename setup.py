@@ -6,7 +6,7 @@ setuptools.setup(
     author='Abraham',
     author_email='abraham.liu@hotmail.com',
     description='a collection toolset for openapi',
-    install_requires=[],
+    install_requires=['py-openapi-schema-to-json-schema>=0.0.3'],
     extra_require={
         'django': ['pyyaml', 'jsonschema', 'django']
     },

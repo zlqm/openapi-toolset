@@ -7,6 +7,7 @@ import urllib.request
 
 import jsonschema
 from jsonschema.validators import RefResolver
+from openapi_schema_to_json_schema.to_jsonschema import convertDoc
 import yaml
 
 from .jsonschema import strict_schema
@@ -66,7 +67,6 @@ class OperationSpec:
         if not schema:
             return None
         schema = self.resource_spec.openapi_spec.resolve_ref(schema)
-        schema = strict_schema(schema)
         return schema
 
     def validate_response(self,
@@ -160,7 +160,7 @@ class OpenAPISpec:
                 return yaml.safe_load(f)
 
     def __init__(self, spec_dict):
-        self.spec_dict = spec_dict
+        self.spec_dict = convertDoc(spec_dict, {})
         self.resources = self._initialize_resources()
         self.ref_resolver = RefResolver('', self.spec_dict)
 
@@ -191,7 +191,6 @@ class OpenAPISpec:
             if isinstance(schema, dict):
                 if '$ref' in schema:
                     schema = self.ref_resolver.resolve(schema['$ref'])[1]
-                    schema = strict_schema(schema)
                     schema = _resolve_ref(schema)
                 else:
                     schema = {
