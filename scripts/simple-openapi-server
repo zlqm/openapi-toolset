@@ -67,10 +67,8 @@ class OPENAPIRequestHandler(SimpleHTTPRequestHandler):
         if path in self.path_alias:
             path = self.path_alias[path]
         elif path == '/openapi.yaml':
-            print(self.openapi_file)
             return self.openapi_file
         res = self.py38_translate_path(path)
-        print(res)
         return res
 
 

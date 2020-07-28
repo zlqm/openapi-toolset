@@ -67,20 +67,18 @@ class OPENAPIRequestHandler(SimpleHTTPRequestHandler):
         if path in self.path_alias:
             path = self.path_alias[path]
         elif path == '/openapi.yaml':
-            print(self.openapi_file)
             return self.openapi_file
         res = self.py38_translate_path(path)
         return res
+
 
 # ensure dual-stack is not disabled; ref #38907
 class DualStackServer(ThreadingHTTPServer):
     def server_bind(self):
         # suppress exception when protocol is IPv4
         with contextlib.suppress(Exception):
-            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY,
-                                   0)
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
         return super().server_bind()
-
 
 
 def add_arguments(parser):
@@ -99,6 +97,7 @@ def add_arguments(parser):
                         default=8000,
                         type=int,
                         help='Specify alternate port [default: 8000]')
+
 
 def serve(filename, port, bind):
     handler_class = partial(OPENAPIRequestHandler, openapi_file=filename)

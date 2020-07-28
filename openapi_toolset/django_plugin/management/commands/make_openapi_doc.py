@@ -11,33 +11,8 @@ except ImportError:
     from django.urls import get_resolver
 from django.utils.functional import cached_property
 
-import yaml
-
 from openapi_toolset.validator import validate, InvalidDoc
-
-
-
-def yaml_loads(stream, Loader=yaml.SafeLoader, object_pairs_hook=OrderedDict):
-    class OrderedLoader(Loader):
-        pass
-    def construct_mapping(loader, node):
-        loader.flatten_mapping(node)
-        return object_pairs_hook(loader.construct_pairs(node))
-    OrderedLoader.add_constructor(
-        yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-        construct_mapping)
-    return yaml.load(stream, OrderedLoader)
-
-
-def yaml_dumps(data, stream=None, Dumper=yaml.Dumper, **kwds):
-    class OrderedDumper(Dumper):
-        pass
-    def _dict_representer(dumper, data):
-        return dumper.represent_mapping(
-            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-            data.items())
-    OrderedDumper.add_representer(OrderedDict, _dict_representer)
-    return yaml.dump(data, stream, OrderedDumper, **kwds)
+from openapi_toolset.django_plugin.utils import (yaml_dumps, yaml_loads)
 
 
 class DjangoAPI:
@@ -71,15 +46,15 @@ class DjangoAPI:
         if self.servers_doc:
             api_doc['servers'] = self.servers_doc
         if self.paths_doc:
-             api_doc['paths'] = self.paths_doc
+            api_doc['paths'] = self.paths_doc
         if self.components_doc:
-             api_doc['components'] = self.components_doc
+            api_doc['components'] = self.components_doc
         if self.security_doc:
-             api_doc['security'] = self.security_doc
+            api_doc['security'] = self.security_doc
         if self.tags_doc:
-             api_doc['tags'] = self.tags_doc
+            api_doc['tags'] = self.tags_doc
         if self.external_docs:
-           api_doc['externalDocs'] = self.external_docs
+            api_doc['externalDocs'] = self.external_docs
         return api_doc
 
     def load_doc_from_settings(self, doc_name, default=None):
@@ -129,10 +104,9 @@ class DjangoAPI:
             path_parameter_doc = self.get_path_parameter_doc(view_class)
             if path_parameter_doc:
                 path_doc['parameters'] = path_parameter_doc
-                doc_parameters = set(
-                    parameter['name'] for parameter in path_parameter_doc
-                    if parameter['in'] == 'path'
-                )
+                doc_parameters = set(parameter['name']
+                                     for parameter in path_parameter_doc
+                                     if parameter['in'] == 'path')
                 real_parameters = set(re.findall(r'\{([^{}/]+)\}', url_path))
                 if not doc_parameters == real_parameters:
                     msg = 'doc_parameters {} and real_parameters {} does '\
@@ -150,7 +124,6 @@ class DjangoAPI:
                     path_method_doc = self.default_path_method_doc
                 path_doc[method] = path_method_doc
         return paths_doc
-
 
     # /pets/(?P<pet_name>[a-z]+)
     url_path_pattern = re.compile(r'\(\?P%\((.+?)\)s[^/$]+')
@@ -192,8 +165,10 @@ class Command(BaseCommand):
     help = 'generate openapi doc from doc string'
 
     def add_arguments(self, parser):
-        parser.add_argument('--file', '-f',
-            help='where to save openapi doc', required=True)
+        parser.add_argument('--file',
+                            '-f',
+                            help='where to save openapi doc',
+                            required=True)
 
     def handle(self, *args, **kwargs):
         api = DjangoAPI()

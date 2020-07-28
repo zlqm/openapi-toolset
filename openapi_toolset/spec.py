@@ -2,68 +2,30 @@ from copy import deepcopy
 from collections import defaultdict, OrderedDict
 import json
 import re
-import weakref
 
 import jsonschema
 from jsonschema.validators import RefResolver
 import yaml
 
-HTTP_METHODS = [
-    'OPTIONS', 'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'
-]
+from .jsonschema import strict_schema
+
+HTTP_METHODS = ['OPTIONS', 'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+
 
 class SpecError(Exception):
-	pass
+    pass
 
 
 class MissingDoc(SpecError):
-	pass
+    pass
 
 
 class UnmatchDoc(SpecError):
-	pass
+    pass
 
 
 class Unset:
-	pass
-
-
-def strict_schema(schema, allow_additional_properties=False):
-    if isinstance(schema, dict):
-        if schema.get('nullable'):
-            _type = schema.get('type', [])
-            if _type and not isinstance(_type, list):
-                _type = [_type]
-            _type.append(None)
-            schema.pop('nullable')
-            schema['type'] = _type
-        if schema.get('type') == 'object':
-            schema['allow_additional_properties'] = \
-                schema.get(
-                    'allow_additional_properties',
-                    allow_additional_properties)
-            default_required = []
-            required = schema.get('required')
-            properties_dct = schema.get('properties', {})
-            for property_key, property_schema in properties_dct.items():
-                property_schema = strict_schema(property_schema)
-                schema['properties'][property_key] = property_schema
-                if not isinstance(property_schema['type'], list) or \
-                        None not in property_schema['type']:
-                    default_required.append(property_key)
-            schema['required'] = required or default_required
-        elif schema.get('type') == 'array':
-            _item_schema = schema.get('items', {})
-            if isinstance(_item_schema, dict) and \
-                    _item_schema.get('type') == 'object':
-                schema['items'] = strict_schema(_item_schema)
-    elif isinstance(schema, list):
-        schema, origin_schema = [], schema
-        for item in origin_schema:
-            if isinstance(item, (dict, list)):
-                item = strict_schema(item)
-            schema.append(item)
-    return schema
+    pass
 
 
 class OperationSpec:
@@ -97,10 +59,10 @@ class OperationSpec:
         else:
             schema = responses_schema[str(status_code)]
         if content_type not in schema.get('content', {}):
-            raise MissingDoc('content-type {} missing'.format(content_type))
+            return None
         schema = schema['content'][content_type].get('schema')
         if not schema:
-            raise MissingDoc('"schema" missing for {}'.format(content_type))
+            return None
         schema = self.resource_spec.openapi_spec.resolve_ref(schema)
         schema = strict_schema(schema)
         return schema
@@ -155,20 +117,17 @@ class ResourceSpec:
             enum = schema.get('enum')
 
             if enum:
-                values = '|'.join(re.escape(item) for item in enum)
+                pattern = '|'.join(re.escape(item) for item in enum)
             elif _type == 'integer':
-                values = r'\d+'
+                pattern = r'\d+'
             else:
-                values = '[^/]+'
+                pattern = '[^/]+'
 
-            regex = r'(?P<{}>{})'.format(name, values)
+            regex = r'(?P<{}>{})'.format(name, pattern)
             return regex
 
-        pattern_str = re.sub(
-            r'{(?P<parameter>[^{}/]+)}',
-            replace_parameter_name_to_regex,
-            self.path
-        )
+        pattern_str = re.sub(r'{(?P<parameter>[^{}/]+)}',
+                             replace_parameter_name_to_regex, self.path)
         pattern_str = pattern_str.rstrip('/') + '/?$'
         return re.compile(pattern_str)
 
