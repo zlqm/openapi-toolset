@@ -1,9 +1,25 @@
+import json
+
 from django.core.management import call_command
+from django.http import JsonResponse
 from django.test import TestCase
 
 from openapi_toolset.django_plugin import exceptions
+
 from . import fake_data
 from .conftest import DOC_FILE
+
+
+def custom_missing_doc_handler(request, response, **kwargs):
+    response_value = json.loads(response.content.decode(response.charset))
+    content = {'err_msg': 'api doc missing', 'response': response_value}
+    return JsonResponse(content, status=513)
+
+
+def custom_mismatch_handler(request, response, **kwargs):
+    response_value = json.loads(response.content.decode(response.charset))
+    content = {'err_msg': 'api doc mismatch', 'response': response_value}
+    return JsonResponse(content, status=513)
 
 
 class MiddlewareTest(TestCase):
@@ -44,6 +60,22 @@ class MiddlewareTest(TestCase):
                            DEBUG=self.DEBUG):
             response = self.client.get('/pets/bear')
             assert response.json() == {'err_msg': 'api doc missing'}
+
+    def test_custom_miss_doc_handler(self):
+        with self.settings(
+                OPENAPI_CHECK_MISSING_DOC_HANDLER=custom_missing_doc_handler):
+            response = self.client.get('/pets/bear')
+            assert response.status_code == 513
+            assert response.json()['err_msg'] == 'api doc missing'
+            assert response.json()['response'] == fake_data.valid_pet_list
+
+    def test_custom_mismatch_handler(self):
+        with self.settings(
+                OPENAPI_CHECK_MISMATCH_HANDLER=custom_mismatch_handler):
+            response = self.client.get('/pets?force_invalid=true')
+            assert response.status_code == 513
+            assert response.json()['err_msg'] == 'api doc mismatch'
+            assert response.json()['response'] == fake_data.invalid_pet_list
 
 
 class DebugMiddlewareTest(MiddlewareTest):
