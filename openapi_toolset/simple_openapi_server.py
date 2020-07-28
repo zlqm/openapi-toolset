@@ -1,4 +1,4 @@
-import argparse
+from argparse import ArgumentParser
 import contextlib
 from functools import partial
 try:

@@ -1,11 +1,10 @@
 from django.contrib import admin
-from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin as UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .forms import DocForm
 from .models import Doc, Membership, Project
+
 
 # Register your models here.
 class HostingSite(admin.AdminSite):
@@ -24,6 +23,7 @@ class HostingSite(admin.AdminSite):
     #         ).order_by('-update_at')
     #     context['projects'] = projects
     #     return TemplateResponse('api_doc/index.html', context)
+
 
 site = HostingSite(name='test')
 
@@ -44,25 +44,17 @@ class DocInline(admin.TabularInline):
 class SimpleUserAdmin(UserAdmin):
     inlines = [MemberInline]
     fieldsets = (
-        (
-            None, 
-            {
-                'fields': ('username', 'password'),
-            }
-        ),
-        (
-            _('Permissions'),
-            {
-                'fields': ('is_active', 'is_staff', 'is_superuser'),
-            }
-        ),
-        (
-            _('Important dates'),
-            {
-                'fields': ('last_login', 'date_joined')
-            }
-        ),
+        (None, {
+            'fields': ('username', 'password'),
+        }),
+        (_('Permissions'), {
+            'fields': ('is_active', 'is_staff', 'is_superuser'),
+        }),
+        (_('Important dates'), {
+            'fields': ('last_login', 'date_joined')
+        }),
     )
+
 
 class ProjectAdmin(admin.ModelAdmin):
     inlines = [MemberInline, DocInline]
@@ -81,6 +73,7 @@ class ProjectAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser or request.user == obj.owner
+
 
 site.register(get_user_model(), SimpleUserAdmin)
 site.register(Project, ProjectAdmin)

@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views import View
 
 
@@ -38,9 +38,7 @@ class PetListView(View):
                 schema:
                   $ref: "#/components/schemas/Error"
         '''
-        content = {
-            'asd': '123'
-        }
+        content = {'asd': '123'}
         return JsonResponse(content)
 
     def post(self, request):
@@ -63,7 +61,6 @@ class PetListView(View):
         return HttpResponse('create pet')
 
 
-
 class PetView(View):
     '''
     here can store common doc like path paramerters
@@ -76,7 +73,6 @@ class PetView(View):
         schema:
           type: string
     '''
-
     def get(self, request, pet_id=None):
         '''
         --api-doc--
@@ -102,8 +98,9 @@ class PetView(View):
             'id': 1,
             'name': 'peter',
             'tag': 'dog',
-            'photos': [
-                {'timestamp': 1, 'url': 'https://ss'}
-            ]
+            'photos': [{
+                'timestamp': 1,
+                'url': 'https://ss'
+            }]
         }
         return JsonResponse(content)
