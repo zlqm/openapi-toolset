@@ -1,4 +1,8 @@
 import json
+import os
+import shutil
+import tempfile
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.http import JsonResponse
@@ -76,6 +80,19 @@ class MiddlewareTest(TestCase):
             assert response.status_code == 513
             assert response.json()['err_msg'] == 'api doc mismatch'
             assert response.json()['response'] == fake_data.invalid_pet_list
+
+    @patch('urllib.request.urlretrieve')
+    def test_spec_from_url(self, mock_urlretrieve):
+        ext = os.path.splitext(DOC_FILE)[-1]
+        with tempfile.NamedTemporaryFile(suffix=ext) as f:
+            url = 'http://mock.server/swagger' + ext
+            shutil.copy(DOC_FILE, f.name)
+            mock_urlretrieve.return_value = f.name, {}
+            with self.settings(OPENAPI_CHECK_FAIL_FAST=False,
+                               DEBUG=self.DEBUG,
+                               OPENAPI_CHECK_DOC=url):
+                response = self.client.get('/pets?force_invalid=true')
+                assert response.json() == fake_data.invalid_pet_list
 
 
 class DebugMiddlewareTest(MiddlewareTest):

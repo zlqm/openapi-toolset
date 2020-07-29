@@ -2,6 +2,8 @@ from copy import deepcopy
 from collections import defaultdict, OrderedDict
 import json
 import re
+import tempfile
+import urllib.request
 
 import jsonschema
 from jsonschema.validators import RefResolver
@@ -137,12 +139,25 @@ class OpenAPISpec:
 
     @classmethod
     def from_file(cls, filename):
+        # check if filename is a url
+        if filename.startswith('http://') or \
+                filename.startswith('https://'):
+            url, filename = filename, None
+            ext = '.json' if url.endswith('.json') else '.ext'
+            with tempfile.NamedTemporaryFile(suffix=ext) as f:
+                filename, _ = urllib.request.urlretrieve(url, f.name)
+                spec_dict = cls.load_spec_from_file(filename)
+        else:
+            spec_dict = cls.load_spec_from_file(filename)
+        return cls(spec_dict)
+
+    @staticmethod
+    def load_spec_from_file(filename):
         with open(filename) as f:
             if filename.endswith('.json'):
-                spec_dict = json.load(f)
+                return json.load(f)
             else:
-                spec_dict = yaml.safe_load(f)
-        return cls(spec_dict)
+                return yaml.safe_load(f)
 
     def __init__(self, spec_dict):
         self.spec_dict = spec_dict
