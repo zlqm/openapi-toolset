@@ -9,21 +9,10 @@ import jsonschema
 from jsonschema.validators import RefResolver
 import yaml
 
-from .jsonschema import strict_schema
+from .compat_schema import compat_jsonschema
+from .exceptions import MissingDoc, UnmatchDoc
 
 HTTP_METHODS = ['OPTIONS', 'HEAD', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-
-
-class SpecError(Exception):
-    pass
-
-
-class MissingDoc(SpecError):
-    pass
-
-
-class UnmatchDoc(SpecError):
-    pass
 
 
 class Unset:
@@ -66,7 +55,6 @@ class OperationSpec:
         if not schema:
             return None
         schema = self.resource_spec.openapi_spec.resolve_ref(schema)
-        schema = strict_schema(schema)
         return schema
 
     def validate_response(self,
@@ -159,8 +147,8 @@ class OpenAPISpec:
             else:
                 return yaml.safe_load(f)
 
-    def __init__(self, spec_dict):
-        self.spec_dict = spec_dict
+    def __init__(self, spec_dict, spec_compat_func=compat_jsonschema):
+        self.spec_dict = spec_compat_func(spec_dict)
         self.resources = self._initialize_resources()
         self.ref_resolver = RefResolver('', self.spec_dict)
 
@@ -191,7 +179,6 @@ class OpenAPISpec:
             if isinstance(schema, dict):
                 if '$ref' in schema:
                     schema = self.ref_resolver.resolve(schema['$ref'])[1]
-                    schema = strict_schema(schema)
                     schema = _resolve_ref(schema)
                 else:
                     schema = {
